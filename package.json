@@ -1,0 +1,14 @@
+{
+  "name": "tailwind-inline",
+  "author": "Gavin Kondrath",
+  "email": "78187175+gavink97@users.noreply.github.com",
+  "homepage": "https://github.com/gavink97/tailwind-inline",
+  "github": "https://github.com/gavink97",
+  "version": "1.0.0",
+  "description": "Generate inline style attributes with Tailwind CSS",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "tailwindcss": "^3.4.13"
+  }
+}

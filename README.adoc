@@ -1,0 +1,107 @@
+= Tailwind Inline
+ifdef::env-github[]
+Gavin Kondrath <78187175+gavink97@users.noreply.github.com>
+v1.0, 2024-09-25
+:homepage: https://github.com/gavink97/tailwind-inline
+endif::[]
+:toc:
+:toc-placement!:
+:icons: font
+
+Generate inline style attributes with Tailwind CSS
+
+toc::[]
+
+== Mission
+
+Tailwind Inline aims to create a cohesive development experience between web
+applications and HTML emails templates.
+
+== Why
+
+Because most email clients block External and Internal CSS, it is a necessity
+to use Inline CSS styles while developing HTML email templates.
+
+== Getting Started
+
+=== Installation
+
+`go get github.com/gavink97/tailwind-inline`
+
+=== Using Tailwind Inline with Templ
+
+```
+import(
+    "os"
+    "log"
+    "context"
+
+    "github.com/a-h/templ"
+    twi "github.com/gavink97/tailwind-inline"
+)
+
+path := "./public/styles.css"
+styles, err := os.ReadFile(path)
+if err != nil {
+    log.Fatal(err)
+}
+
+ctx := context.Background()
+component := yourTemplComponent
+s, err := templ.ToGoHTML(ctx, component)
+if err != nil {
+    log.Fatal(err)
+}
+
+c := twi.Convert(string(s), styles)
+```
+
+
+=== Using Tailwind Inline with html/template
+
+```
+import(
+    "os"
+    "io"
+    "log"
+    "bytes"
+    "html/template"
+
+    twi "github.com/gavink97/tailwind-inline"
+)
+
+path := "./public/styles.css"
+styles, err := os.ReadFile(path)
+if err != nil {
+    log.Fatal(err)
+}
+
+var b bytes.Buffer
+tpl := yourTemplate
+t, err := template.New("Email").Parse(tpl)
+if err != nil {
+    log.Fatal()
+}
+
+data := struct {
+          Title string
+      }{
+Title: "My email",
+      }
+
+buff := io.Writer(&b)
+err = t.Execute(buff, data)
+
+c := twi.Convert(b.String(), styles)
+```
+
+== Contributing
+
+I'm open to contributions
+
+== Star
+
+If you've found this useful please give it a star ⭐️ as it helps other developers
+find my repos.
+
+image:https://api.star-history.com/svg?repos=gavink97/tailwind-inline&type=Date[link=https://star-history.com/#gavink97/tailwind-inline&Date]
