@@ -14,13 +14,13 @@ toc::[]
 
 == Mission
 
-Tailwind Inline aims to create a cohesive development experience between web
-applications and HTML emails templates.
+Tailwind Inline aims to create a cohesive development experience, whether
+you're using templates to build a web application or an HTML email.
 
 == Why
 
-Because most email clients block External and Internal CSS, it is a necessity
-to use Inline CSS styles while developing HTML email templates.
+Because most email clients block external and internal CSS, it's essential to
+use inline style CSS when developing HTML email templates.
 
 == Getting Started
 
@@ -104,4 +104,12 @@ I'm open to contributions
 If you've found this useful please give it a star ⭐️ as it helps other developers
 find my repos.
 
-image:https://api.star-history.com/svg?repos=gavink97/tailwind-inline&type=Date[link=https://star-history.com/#gavink97/tailwind-inline&Date]
+++++
+<a href="https://star-history.com/#gavink97/tailwind-inline&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=gavink97/tailwind-inline&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=gavink97/tailwind-inline&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=gavink97/tailwind-inline&type=Date" />
+ </picture>
+</a>
+++++

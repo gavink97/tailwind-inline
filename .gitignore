@@ -1,9 +1,0 @@
-export.go
-*.templ
-*_templ.go
-node_modules
-cmd
-go.sum
-package-lock.json
-public
-tailwind.config.js
