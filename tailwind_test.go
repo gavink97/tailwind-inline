@@ -176,3 +176,43 @@ func TestWriteMediaQueries(t *testing.T) {
 		t.Errorf("Incorrect Result, result: %s expected: %s", result, expected)
 	}
 }
+
+func TestRemoveOldClassTags(t *testing.T) {
+	tpl := []string{`<body><h1 class=" " style="font-size: 1.5rem;line-height: ` +
+		`2rem;font-weight: 700;">Hello </h1><p class=" " style="--tw-text-opacity: ` +
+		`1;color: rgb(239 68 68 / var(--tw-text-opacity));font-size: ` +
+		`1.25rem;line-height: 1.75rem;">This is a test is it working</p></body>`,
+
+		`<body><h1 class=" " style="font-size: 1.5rem;line-height: ` +
+			`2rem;">Hello </h1><p class=" md:font-bold lg:font-bold" style="--tw-text-opacity: 1;color: ` +
+			`rgb(239 68 68 / var(--tw-text-opacity));font-size: 1.25rem;line-height: ` +
+			`1.75rem;">This is a test is it working</p></body>`,
+
+		`<body><h1 class=" md:font-bold" style="font-size: 1.5rem;line-height: ` +
+			`2rem;">Hello </h1><p class=" " style="--tw-text-opacity: 1;color: ` +
+			`rgb(239 68 68 / var(--tw-text-opacity));font-size: 1.25rem;line-height: ` +
+			`1.75rem;">This is a test is it working</p></body>`}
+
+	expected := []string{`<body><h1 style="font-size: 1.5rem;line-height: ` +
+		`2rem;font-weight: 700;">Hello </h1><p style="--tw-text-opacity: ` +
+		`1;color: rgb(239 68 68 / var(--tw-text-opacity));font-size: ` +
+		`1.25rem;line-height: 1.75rem;">This is a test is it working</p></body>`,
+
+		`<body><h1 style="font-size: 1.5rem;line-height: ` +
+			`2rem;">Hello </h1><p class="md:font-bold lg:font-bold" style="--tw-text-opacity: 1;color: ` +
+			`rgb(239 68 68 / var(--tw-text-opacity));font-size: 1.25rem;line-height: ` +
+			`1.75rem;">This is a test is it working</p></body>`,
+
+		`<body><h1 class="md:font-bold" style="font-size: 1.5rem;line-height: ` +
+			`2rem;">Hello </h1><p style="--tw-text-opacity: 1;color: ` +
+			`rgb(239 68 68 / var(--tw-text-opacity));font-size: 1.25rem;line-height: ` +
+			`1.75rem;">This is a test is it working</p></body>`}
+
+	for i := range tpl {
+		result := removeOldClassTags(tpl[i])
+
+		if !strings.EqualFold(result, expected[i]) {
+			t.Errorf("Incorrect Result, result: %s expected: %s", result, expected[i])
+		}
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	s "strings"
+	"unicode"
 )
 
 type field struct {
@@ -226,6 +227,7 @@ func writeMediaQueries(tpl string, css []string) string {
 	return tpl
 }
 
+// create alternative function for getting headers too
 func Convert(tpl string, styles []byte) string {
 	fields := getClasses(tpl)
 
@@ -242,10 +244,53 @@ func Convert(tpl string, styles []byte) string {
 	}
 
 	tpl = writeMediaQueries(tpl, mediaQueries)
-	// clean up old class attributes / spacing issues
+	tpl = removeOldClassTags(tpl)
 
 	return tpl
 }
+
+func removeOldClassTags(tpl string) string {
+	tag := `class="`
+	clone := s.Clone(tpl)
+
+	for range s.Count(clone, tag) {
+		fi := s.Index(clone, tag)
+		fi = fi + len(tag)
+		li := s.IndexRune(clone[fi:], '"')
+		li = li + fi
+
+		f := func(r rune) bool {
+			return unicode.IsLetter(r)
+		}
+
+		if s.ContainsFunc(clone[fi:li], f) {
+			splits := s.Split(s.Clone(tpl[fi:li]), " ")
+
+			var sb s.Builder
+			for i, v := range splits {
+				v = s.TrimSpace(v)
+				sb.WriteString(v)
+
+				if i+1 < len(splits) {
+					sb.WriteRune(' ')
+				}
+			}
+
+			class := fmt.Sprintf(`class="%s"`, s.TrimSpace(sb.String()))
+			tpl = fmt.Sprintf("%s%s%s", tpl[:fi-len(tag)], class, tpl[li+1:])
+			clone = fmt.Sprintf("%s%s%s", clone[:fi-len(tag)], s.Replace(class, "class", "clone", 1), clone[li+1:])
+
+		} else {
+			i := len(tag) + 1
+			tpl = fmt.Sprintf("%s%s", tpl[:fi-i], tpl[li+1:])
+			clone = fmt.Sprintf("%s%s", clone[:fi-i], clone[li+1:])
+		}
+	}
+
+	return tpl
+}
+
+// create function for getting header styles from tailwind
 
 // create styles for img display block
 // style="display:block"

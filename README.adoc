@@ -1,7 +1,7 @@
 = Tailwind Inline
 ifdef::env-github[]
 Gavin Kondrath <78187175+gavink97@users.noreply.github.com>
-v1.0, 2024-09-25
+v1.0.1, 2024-10-18
 :homepage: https://github.com/gavink97/tailwind-inline
 endif::[]
 :toc:
