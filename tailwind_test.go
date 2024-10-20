@@ -216,3 +216,37 @@ func TestRemoveOldClassTags(t *testing.T) {
 		}
 	}
 }
+
+func TestTransform(t *testing.T) {
+	classes := []string{"w-[600px]", "*:italic", "@xl:p-2"}
+
+	expected := []string{`.w-\[600px\]`, `.\*\:italic`, `.\@xl\:p-2`}
+
+	for i, class := range classes {
+		result := transform(class)
+
+		if !strings.EqualFold(result, expected[i]) {
+			t.Errorf("Incorrect Result, result: %s expected: %s", result, expected[i])
+		}
+	}
+}
+
+func Test_TransformImgTags(t *testing.T) {
+	tags := []string{`<img src="/public/images/동작절.jpg" alt="A temple surrounded by trees"></img>`,
+		`<img src="/public/test.jpg" alt="A test image" style="padding-top: 0.5rem;"></img>`,
+		`<img src="/test1.jpg" alt="1st test image"></img><img src="/test2.jpg" alt="2nd test image"></img>`,
+		`<img src="/public/test.jpg" alt="A test image" style="padding-top: 0.5rem; display:block;"></img>`}
+
+	expected := []string{`<img src="/public/images/동작절.jpg" alt="A temple surrounded by trees" style="display:block;"></img>`,
+		`<img src="/public/test.jpg" alt="A test image" style="padding-top: 0.5rem; display:block;"></img>`,
+		`<img src="/test1.jpg" alt="1st test image" style="display:block;"></img><img src="/test2.jpg" alt="2nd test image" style="display:block;"></img>`,
+		`<img src="/public/test.jpg" alt="A test image" style="padding-top: 0.5rem; display:block;"></img>`}
+
+	for i, v := range tags {
+		result := TransformImgTags(v)
+
+		if !strings.EqualFold(result, expected[i]) {
+			t.Errorf("Incorrect Result, result: %s expected: %s", result, expected[i])
+		}
+	}
+}

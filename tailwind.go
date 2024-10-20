@@ -41,6 +41,7 @@ func getClasses(str string) []string {
 	return class
 }
 
+// @container, @keyframes
 func assignField(class string) field {
 	mediaPrefix := []string{"sm:", "md:", "lg:", "xl:", "2xl:", "max-sm:",
 		"max-md:", "max-lg:", "max-xl:", "max-2xl:", "min-[", "max-[",
@@ -60,13 +61,15 @@ func assignField(class string) field {
 }
 
 func transform(class string) string {
-	if s.ContainsRune(class, ':') {
-		idx := s.Index(class, ":")
-		class = s.Replace(class, ":", `\:`, idx)
-		class = fmt.Sprintf(".%s", class)
-		return class
+	symbols := []rune{':', '[', ']', '%', '*', '@'}
+
+	for _, v := range symbols {
+		if s.ContainsRune(class, v) {
+			class = s.ReplaceAll(class, string(v), fmt.Sprintf(`\%s`, string(v)))
+		}
 	}
 
+	class = fmt.Sprintf(".%s", class)
 	return class
 }
 
@@ -90,6 +93,7 @@ func getInlineStyles(styles []byte, field field) string {
 	return string(cut[1])
 }
 
+// @container, @keyframes
 func getMediaQueries(styles []byte, field field) string {
 	class := transform(field.Class)
 
@@ -290,7 +294,47 @@ func removeOldClassTags(tpl string) string {
 	return tpl
 }
 
-// create function for getting header styles from tailwind
+func TransformImgTags(tpl string) string {
+	tag := "<img"
+	attr := `style="`
+	style := "display:block;"
 
-// create styles for img display block
-// style="display:block"
+	clone := s.Clone(tpl)
+
+	for range s.Count(clone, tag) {
+		fi := s.Index(clone, tag)
+		fi = fi + len(tag)
+
+		li := s.IndexRune(clone[fi:], '>')
+		li = fi + li
+
+		if s.Contains(clone[fi:li], attr) {
+			fti := s.Index(clone[fi:], attr)
+			fti = fi + fti + len(attr)
+
+			lti := s.IndexRune(clone[fti:], '"')
+			lti = fti + lti
+
+			if s.Contains(clone[fti:lti], style) {
+				fi = s.Index(clone, tag)
+				clone = fmt.Sprintf("%s%s%s", clone[:fi], s.ReplaceAll(clone[fi:li], tag, "<cln"), clone[li:])
+			} else {
+				tpl = fmt.Sprintf("%s %s%s", tpl[:lti], style, tpl[lti:])
+				clone = fmt.Sprintf("%s %s%s", clone[:lti], style, clone[lti:])
+
+				fi = s.Index(clone, tag)
+				clone = fmt.Sprintf("%s%s%s", clone[:fi], s.ReplaceAll(clone[fi:li], tag, "<cln"), clone[li:])
+			}
+		} else {
+			tpl = fmt.Sprintf("%s %s%s", tpl[:li], fmt.Sprintf(`style="%s"`, style), tpl[li:])
+			clone = fmt.Sprintf("%s %s%s", clone[:li], fmt.Sprintf(`style="%s"`, style), clone[li:])
+
+			fi = s.Index(clone, tag)
+			clone = fmt.Sprintf("%s%s%s", clone[:fi], s.ReplaceAll(clone[fi:li], tag, "<cln"), clone[li:])
+		}
+	}
+
+	return tpl
+}
+
+// create function for getting header styles from tailwind
