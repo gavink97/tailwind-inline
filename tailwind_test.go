@@ -43,6 +43,25 @@ var styles = []byte(`
     line-height: 2rem;
     }
     }
+
+@media (max-width: 460px) {
+  .max-\[460px\]\:block {
+    display: block;
+  }
+
+  .max-\[460px\]\:w-full {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1024px) {
+  @media (min-width: 640px) {
+    .lg\:sm\:bg-zinc-50 {
+      --tw-bg-opacity: 1;
+      background-color: rgb(250 250 250 / var(--tw-bg-opacity));
+    }
+  }
+}
     `)
 
 func TestGetClasses(t *testing.T) {
@@ -59,10 +78,10 @@ func TestGetClasses(t *testing.T) {
 }
 
 func TestAssignField(t *testing.T) {
-	classes := []string{"text-2xl", "lg:p-8", "max-w-md", "p-8"}
-	expected := []field{{Type: "inline", Class: "text-2xl"}, {Type: "media",
-		Class: "lg:p-8"}, {Type: "inline", Class: "max-w-md"}, {Type: "inline",
-		Class: "p-8"}}
+	classes := []string{"lg:p-8", "max-w-md", "@xs:p-8"}
+	expected := []field{{Type: "media", Class: "lg:p-8", Prefix: "lg:"},
+		{Type: "inline", Class: "max-w-md", Prefix: ""},
+		{Type: "container", Class: "@xs:p-8", Prefix: "@xs:"}}
 
 	for index, value := range classes {
 		result := assignField(value)
@@ -90,13 +109,17 @@ func TestGetInlineStyles(t *testing.T) {
 }
 
 func TestGetMediaQueries(t *testing.T) {
-	field := field{Type: "media", Class: "sm:text-black"}
+	field := field{Type: "media", Class: "max-[460px]:block", Prefix: "max-[460px]:"}
 
-	expected := `@media (min-width: 640px) {
-    .sm\:text-black {
-    --tw-text-opacity: 1;
-    color: rgb(0 0 0 / var(--tw-text-opacity));
-    }` + "\n}"
+	expected := `@media (max-width: 460px) {
+  .max-\[460px\]\:block {
+    display: block;
+  }
+
+  .max-\[460px\]\:w-full {
+    width: 100%;
+  }
+}`
 
 	result := getMediaQueries(styles, field)
 
@@ -142,7 +165,7 @@ func TestReplaceWithInlineCSS(t *testing.T) {
 }
 
 func TestWriteMediaQueries(t *testing.T) {
-	tpl := `<h1 class="lg:text-2xl p-8 sm:text-black">Hello</h1>`
+	tpl := "<style></style>\n" + `<h1 class="lg:text-2xl p-8 sm:text-black">Hello</h1>`
 
 	css := []string{`@media (min-width: 640px) {
     .sm\:text-black {
@@ -156,7 +179,7 @@ func TestWriteMediaQueries(t *testing.T) {
     }
     }`}
 
-	expected := "<head><style>\n" + `
+	expected := "<style>" + `
 @media (min-width: 640px) {
     .sm\:text-black {
     --tw-text-opacity: 1;
@@ -168,7 +191,7 @@ func TestWriteMediaQueries(t *testing.T) {
     font-size: 1.5rem;
     line-height: 2rem;
     }
-    }` + "\n</style></head>" + `<h1 class="lg:text-2xl p-8 sm:text-black">Hello</h1>`
+    }` + "\n</style>\n" + `<h1 class="lg:text-2xl p-8 sm:text-black">Hello</h1>`
 
 	result := writeMediaQueries(tpl, css)
 

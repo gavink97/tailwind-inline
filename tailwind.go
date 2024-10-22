@@ -8,9 +8,19 @@ import (
 	"unicode"
 )
 
+var mediaPrefix = []string{"sm:", "md:", "lg:", "xl:", "2xl:", "max-sm:",
+	"max-md:", "max-lg:", "max-xl:", "max-2xl:", "min-[", "max-[",
+	"motion-safe:", "contrast-more:", "contrast-less:", "dark:",
+	"forced-colors:", "landscape:", "motion-reduce:", "print:",
+	"portrait:"}
+
+var containerPrefix = []string{"@[", "@xs:", "@sm:", "@md:", "@lg:", "@xl:",
+	"@2xl:", "@3xl:", "@4xl:", "@5xl:", "@6xl:", "@7xl:"}
+
 type field struct {
-	Type  string
-	Class string
+	Type   string
+	Class  string
+	Prefix string
 }
 
 func getClasses(str string) []string {
@@ -41,18 +51,20 @@ func getClasses(str string) []string {
 	return class
 }
 
-// @container, @keyframes
 func assignField(class string) field {
-	mediaPrefix := []string{"sm:", "md:", "lg:", "xl:", "2xl:", "max-sm:",
-		"max-md:", "max-lg:", "max-xl:", "max-2xl:", "min-[", "max-[",
-		"motion-safe:", "contrast-more:", "contrast-less:", "dark:",
-		"forced-colors:", "landscape:", "motion-reduce:", "print:",
-		"portrait:"}
+	if s.ContainsRune(class, ':') {
+		splits := s.SplitAfter(class, ":")
+		prefix := s.Join(splits[:len(splits)-1], "")
 
-	for range mediaPrefix {
-		for _, prefix := range mediaPrefix {
-			if s.HasPrefix(class, prefix) {
-				return field{Type: "media", Class: class}
+		for _, v := range mediaPrefix {
+			if s.HasPrefix(prefix, v) {
+				return field{Type: "media", Class: class, Prefix: prefix}
+			}
+		}
+
+		for _, v := range containerPrefix {
+			if s.HasPrefix(prefix, v) {
+				return field{Type: "container", Class: class, Prefix: prefix}
 			}
 		}
 	}
@@ -93,30 +105,67 @@ func getInlineStyles(styles []byte, field field) string {
 	return string(cut[1])
 }
 
-// @container, @keyframes
 func getMediaQueries(styles []byte, field field) string {
 	class := transform(field.Class)
+	splits := s.SplitAfter(field.Prefix, ":")
+	count := 0
 
-	idx := b.Index(styles, []byte(class))
-	if idx == -1 {
-		slog.Error(fmt.Sprintf("Class not present in styles sheet %s", class))
-		return ""
-	}
-
-	midx := b.LastIndex(styles[:idx], []byte("@media"))
-	if midx == -1 {
-		slog.Error(fmt.Sprintf("Class not present in styles sheet %s", class))
-		return ""
-	}
-
-	cut := b.FieldsFunc(styles[midx:], func(r rune) bool {
-		if r == '@' || r == '}' {
-			return true
+	for _, x := range splits {
+		for _, v := range mediaPrefix {
+			if s.HasPrefix(x, v) {
+				count++
+				break
+			}
 		}
-		return false
-	})
 
-	return fmt.Sprintf("@%s}\n}", string(cut[0]))
+		for _, v := range containerPrefix {
+			if s.HasPrefix(x, v) {
+				count++
+				break
+			}
+		}
+	}
+
+	ci := b.Index(styles, []byte(class))
+	if ci == -1 {
+		slog.Error(fmt.Sprintf("Class not present in styles sheet %s", class))
+		return ""
+	}
+
+	var si int
+	clone := b.Clone(styles)
+	for range count {
+		si = b.LastIndex(clone[:ci], []byte("@"))
+		if si == -1 {
+			slog.Error(fmt.Sprintf("Class not present in styles sheet %s", class))
+			return ""
+		}
+
+		clone = []byte(fmt.Sprintf("%s%s", string(clone[:si]), s.Replace(string(clone[si-1:]), "@", "$", 1)))
+	}
+
+	ocb := b.Count(styles[si:ci], []byte("{"))
+	ccb := b.Count(styles[si:ci], []byte("}"))
+
+	for ocb > ccb {
+		clone = []byte(fmt.Sprintf("%s%s", string(clone[:si]), s.Replace(string(clone[si:]), "}", "$", 1)))
+
+		cli := b.IndexRune(clone[ci:], '}')
+		if cli == -1 {
+			slog.Error(fmt.Sprintf("Class not present in styles sheet %s", class))
+			return ""
+		}
+
+		ci = ci + cli
+
+		ocb = b.Count(styles[si:ci], []byte("{"))
+		ccb = b.Count(styles[si:ci], []byte("}"))
+
+		if ocb == ccb {
+			return string(styles[si:ci])
+		}
+	}
+	return ""
 }
 
 func validateClassByFirstIndex(tpl string, field field) int {
@@ -193,40 +242,18 @@ func replaceWithInlineCSS(tpl, css string, field field) string {
 }
 
 func writeMediaQueries(tpl string, css []string) string {
-	if !s.Contains(s.ToLower(tpl), "<head>") {
-		slog.Info("There is no head tag present in your template")
-		headtag := "<head>\n</head>"
-		tpl = fmt.Sprintf("%s%s", headtag, tpl)
-	}
-
-	hoi := s.Index(s.ToLower(tpl), "<head>")
-	if hoi == -1 {
-		slog.Error("There is no head tag present in your template")
-		return tpl
-	}
-
-	hci := s.Index(s.ToLower(tpl), "</head>")
-	if hci == -1 {
-		slog.Error("There is no head closing tag present in your template")
-		return tpl
-	}
-
-	if !s.Contains(s.ToLower(tpl[hoi:hci]), "<style>") {
-		slog.Info("There is no style tag present in your templates head")
-		styletag := "<style>\n</style>"
-		tpl = fmt.Sprintf("%s%s%s", tpl[:hoi+6], styletag, tpl[hci:])
-		hci = hci + len(styletag)
-	}
-
 	media := s.Join(css, "\n")
+	style := "<style>"
 
-	sci := s.Index(s.ToLower(tpl[hoi:hci]), "</style>")
-	if sci == -1 {
-		slog.Error("There is no style tag present in your templates head")
-		return tpl
+	if s.Contains(s.ToLower(tpl), style) {
+		i := s.Index(tpl, style)
+		i = i + len(style)
+
+		tpl = fmt.Sprintf("%s\n%s\n%s", tpl[:i], media, tpl[i:])
+	} else {
+		slog.Info("Theres no style tag present inside your template")
+		tpl = fmt.Sprintf("%s\n%s\n%s\n%s", style, media, "</style>", tpl)
 	}
-
-	tpl = fmt.Sprintf("%s\n%s\n%s", tpl[:sci], media, tpl[sci:])
 
 	return tpl
 }
@@ -235,12 +262,22 @@ func writeMediaQueries(tpl string, css []string) string {
 func Convert(tpl string, styles []byte) string {
 	fields := getClasses(tpl)
 
+	var set = make(map[string]bool)
 	var mediaQueries []string
+
 	for _, field := range fields {
 		field := assignField(field)
-		if field.Type == "media" {
-			css := getMediaQueries(styles, field)
-			mediaQueries = append(mediaQueries, css)
+
+		if field.Type == "media" || field.Type == "container" {
+			if set[field.Prefix] {
+				slog.Debug(fmt.Sprintf("%s has already been seen", field.Prefix))
+
+			} else {
+				css := getMediaQueries(styles, field)
+				mediaQueries = append(mediaQueries, css)
+				set[field.Prefix] = true
+			}
+
 		} else {
 			css := getInlineStyles(styles, field)
 			tpl = replaceWithInlineCSS(tpl, css, field)
@@ -336,5 +373,3 @@ func TransformImgTags(tpl string) string {
 
 	return tpl
 }
-
-// create function for getting header styles from tailwind
