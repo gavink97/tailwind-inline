@@ -1,4 +1,4 @@
-= Tailwind Inline
+= Archiving Project for now
 ifdef::env-github[]
 Gavin Kondrath <78187175+gavink97@users.noreply.github.com>
 v1.0.1, 2024-10-18
@@ -8,9 +8,11 @@ endif::[]
 :toc-placement!:
 :icons: font
 
-Generate inline style attributes with Tailwind CSS
+Archiving this project to focus on other things. Should work with Tailwindcss v3 unsure about v4.
 
 toc::[]
+
+
 
 == Mission
 
